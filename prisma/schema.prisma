@@ -1,0 +1,312 @@
+// Prisma schema — Sistema de punto de venta
+// Base de datos: PostgreSQL (Neon)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  SELLER
+}
+
+enum PaymentMethod {
+  CASH // Efectivo
+  TRANSFER // Transferencia
+  CARD // Tarjeta
+  OTHER // Otro
+}
+
+enum SaleStatus {
+  ACTIVE // Venta vigente
+  CANCELLED // Venta anulada (stock repuesto)
+}
+
+enum MovementType {
+  ENTRY // Entrada / compra / reposición de mercancía
+  ADJUSTMENT // Ajuste manual de inventario (+/-)
+  LOSS // Merma / pérdida
+  SALE // Salida por venta
+  SALE_CANCELLED // Reingreso por anulación de venta
+}
+
+enum QuoteStatus {
+  PENDING // Cotización vigente, aún no convertida
+  CONVERTED // Convertida en venta
+  CANCELLED // Anulada / descartada
+}
+
+enum CashStatus {
+  OPEN // Caja abierta
+  CLOSED // Caja cerrada (arqueada)
+}
+
+// ─── Usuarios (autenticación y roles) ───────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String // hash bcrypt
+  role      Role     @default(SELLER)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales          Sale[]          @relation("SaleSeller") // ventas registradas por este usuario
+  cancelledSales Sale[]          @relation("SaleCanceller") // ventas anuladas por este usuario
+  stockMovements StockMovement[] // movimientos de inventario registrados
+  quotes         Quote[] // cotizaciones creadas
+  cashOpened     CashRegister[]  @relation("CashOpener") // cajas abiertas
+  cashClosed     CashRegister[]  @relation("CashCloser") // cajas cerradas
+
+  @@map("users")
+}
+
+// ─── Categorías de productos ────────────────────────────────────────
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  products  Product[]
+
+  @@map("categories")
+}
+
+// ─── Productos ──────────────────────────────────────────────────────
+
+model Product {
+  id          String   @id @default(cuid())
+  code        String   @unique // código de producto (SKU)
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2) // precio de venta
+  stock       Int      @default(0) // stock disponible (nunca negativo, validado en servicio)
+  image       String? // imagen del producto (data URL base64)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  categoryId String?
+  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  saleDetails    SaleDetail[]
+  stockMovements StockMovement[]
+  quoteDetails   QuoteDetail[]
+
+  @@index([name])
+  @@index([code])
+  @@map("products")
+}
+
+// ─── Clientes ───────────────────────────────────────────────────────
+
+model Customer {
+  id         String   @id @default(cuid())
+  fullName   String
+  documentId String   @unique // DNI / RUC / documento de identidad
+  phone      String?
+  email      String?
+  address    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sales  Sale[]
+  quotes Quote[]
+
+  @@index([fullName])
+  @@map("customers")
+}
+
+// ─── Ventas / Notas de venta ────────────────────────────────────────
+
+model Sale {
+  id       String   @id @default(cuid())
+  number   Int      @unique @default(autoincrement()) // correlativo de nota de venta
+  subtotal Decimal  @db.Decimal(10, 2)
+  discount Decimal  @default(0) @db.Decimal(10, 2)
+  total    Decimal  @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @default(CASH)
+  note     String? // observaciones opcionales
+  createdAt DateTime @default(now())
+
+  // Anulación / devolución
+  status       SaleStatus @default(ACTIVE)
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  userId String
+  user   User   @relation("SaleSeller", fields: [userId], references: [id])
+
+  cancelledById String?
+  cancelledBy   User?   @relation("SaleCanceller", fields: [cancelledById], references: [id])
+
+  // Sesión de caja a la que pertenece la venta (si había una abierta)
+  cashRegisterId String?
+  cashRegister   CashRegister? @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
+
+  details SaleDetail[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("sales")
+}
+
+// ─── Detalle de venta (líneas de la nota) ───────────────────────────
+
+model SaleDetail {
+  id        String  @id @default(cuid())
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2) // precio unitario en el momento de la venta
+  subtotal  Decimal @db.Decimal(10, 2) // quantity * unitPrice
+
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  // Nombre y código congelados para conservar el histórico aunque el producto cambie
+  productName String
+  productCode String
+
+  @@map("sale_details")
+}
+
+// ─── Movimientos de inventario (kardex) ─────────────────────────────
+// Registra toda variación de stock: entradas/compras, ajustes, mermas,
+// ventas y reingresos por anulación. Permite auditar el inventario.
+
+model StockMovement {
+  id            String       @id @default(cuid())
+  type          MovementType
+  quantity      Int // delta aplicado (positivo = ingresa, negativo = sale)
+  previousStock Int // stock antes del movimiento
+  newStock      Int // stock después del movimiento
+  reason        String? // motivo / observación
+  createdAt     DateTime     @default(now())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  saleId String? // referencia a la venta (movimientos SALE / SALE_CANCELLED)
+
+  @@index([productId])
+  @@index([createdAt])
+  @@index([type])
+  @@map("stock_movements")
+}
+
+// ─── Configuración de la tienda (registro único / singleton) ────────
+// Los datos que aparecen en la nota de venta. Editables desde la UI por
+// el administrador (incluye el logo como data URL en base64).
+
+model StoreSettings {
+  id              String   @id @default("default")
+  name            String   @default("Mi Tienda")
+  ruc             String   @default("")
+  address         String   @default("")
+  phone           String   @default("")
+  email           String   @default("")
+  currency        String   @default("S/")
+  logo            String? // data URL (base64) del logo
+  thankYouMessage String   @default("¡Gracias por su compra!")
+  lowStockThreshold Int    @default(10) // umbral para alertas de stock bajo
+  requireCashRegister Boolean @default(true) // exigir caja abierta para poder vender
+  updatedAt       DateTime @updatedAt
+
+  @@map("store_settings")
+}
+
+// ─── Cotizaciones / Proformas ───────────────────────────────────────
+// Presupuestos que NO afectan el stock. Al convertirse en venta se valida
+// y descuenta el inventario (ver quote.service.convert).
+
+model Quote {
+  id         String      @id @default(cuid())
+  number     Int         @unique @default(autoincrement()) // correlativo de cotización
+  subtotal   Decimal     @db.Decimal(10, 2)
+  discount   Decimal     @default(0) @db.Decimal(10, 2)
+  total      Decimal     @db.Decimal(10, 2)
+  status     QuoteStatus @default(PENDING)
+  validUntil DateTime? // fecha de validez del presupuesto
+  note       String?
+  createdAt  DateTime    @default(now())
+
+  // Venta generada al convertir (si aplica)
+  convertedSaleId String?
+  convertedAt     DateTime?
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  details QuoteDetail[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("quotes")
+}
+
+model QuoteDetail {
+  id        String  @id @default(cuid())
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  quoteId String
+  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  productName String
+  productCode String
+
+  @@map("quote_details")
+}
+
+// ─── Caja diaria / Arqueo ───────────────────────────────────────────
+// Sesión de caja: apertura con monto inicial, ventas asociadas y cierre
+// con conteo de efectivo (esperado vs. contado = diferencia).
+
+model CashRegister {
+  id             String     @id @default(cuid())
+  status         CashStatus @default(OPEN)
+  openingAmount  Decimal    @db.Decimal(10, 2) // monto inicial en caja
+  countedAmount  Decimal?   @db.Decimal(10, 2) // efectivo contado al cierre
+  expectedAmount Decimal?   @db.Decimal(10, 2) // esperado = apertura + ventas en efectivo
+  difference     Decimal?   @db.Decimal(10, 2) // contado - esperado (faltante/sobrante)
+  openingNote    String?
+  closingNote    String?
+  openedAt       DateTime   @default(now())
+  closedAt       DateTime?
+
+  openedById String
+  openedBy   User   @relation("CashOpener", fields: [openedById], references: [id])
+
+  closedById String?
+  closedBy   User?   @relation("CashCloser", fields: [closedById], references: [id])
+
+  sales Sale[]
+
+  @@index([status])
+  @@map("cash_registers")
+}
