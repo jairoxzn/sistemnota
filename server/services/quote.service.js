@@ -97,11 +97,24 @@ export const quoteService = {
    *  - Descuenta stock, registra movimientos SALE y marca la cotización CONVERTED.
    */
   async convert(id, { paymentMethod = 'CASH' }, userId) {
-    return prisma.$transaction(async (tx) => {
-      const quote = await tx.quote.findUnique({ where: { id }, include: { details: true } });
-      if (!quote) throw ApiError.notFound('Cotización no encontrada');
-      if (quote.status === 'CONVERTED') throw ApiError.conflict('La cotización ya fue convertida');
-      if (quote.status === 'CANCELLED') throw ApiError.conflict('La cotización está anulada');
+    // Lecturas de caja/config fuera de la transacción (menos latencia en Neon)
+    const [openCash, settings] = await Promise.all([
+      prisma.cashRegister.findFirst({ where: { status: 'OPEN' }, select: { id: true } }),
+      prisma.storeSettings.findUnique({
+        where: { id: 'default' },
+        select: { requireCashRegister: true },
+      }),
+    ]);
+    if ((settings?.requireCashRegister ?? true) && !openCash) {
+      throw ApiError.conflict('Debes abrir la caja antes de convertir la cotización en venta');
+    }
+
+    return prisma.$transaction(
+      async (tx) => {
+        const quote = await tx.quote.findUnique({ where: { id }, include: { details: true } });
+        if (!quote) throw ApiError.notFound('Cotización no encontrada');
+        if (quote.status === 'CONVERTED') throw ApiError.conflict('La cotización ya fue convertida');
+        if (quote.status === 'CANCELLED') throw ApiError.conflict('La cotización está anulada');
 
       const grouped = new Map();
       for (const d of quote.details) grouped.set(d.productId, d.quantity);
@@ -120,42 +133,30 @@ export const quoteService = {
         Number(quote.discount)
       );
 
-      // Asociar a la caja abierta (si existe) para el arqueo
-      const openCash = await tx.cashRegister.findFirst({
-        where: { status: 'OPEN' },
-        select: { id: true },
-      });
-
-      // Si la tienda exige caja abierta, no se puede convertir sin caja
-      const settings = await tx.storeSettings.findUnique({ where: { id: 'default' } });
-      if ((settings?.requireCashRegister ?? true) && !openCash) {
-        throw ApiError.conflict('Debes abrir la caja antes de convertir la cotización en venta');
-      }
-
-      // Crear la venta
-      const sale = await tx.sale.create({
-        data: {
-          customerId: quote.customerId,
-          userId,
-          subtotal,
-          discount,
-          total,
-          paymentMethod,
-          cashRegisterId: openCash?.id || null,
-          note: `Generada desde cotización COT-${String(quote.number).padStart(6, '0')}`,
-          details: { create: detailData },
-        },
-        include: saleInclude,
-      });
-
-      // Descontar stock + movimientos SALE
-      const stockById = new Map(products.map((p) => [p.id, p.stock]));
-      for (const [productId, qty] of grouped) {
-        const previousStock = stockById.get(productId);
-        const newStock = previousStock - qty;
-        await tx.product.update({ where: { id: productId }, data: { stock: newStock } });
-        await tx.stockMovement.create({
+        // Crear la venta (asociada a la caja abierta leída fuera de la transacción)
+        const sale = await tx.sale.create({
           data: {
+            customerId: quote.customerId,
+            userId,
+            subtotal,
+            discount,
+            total,
+            paymentMethod,
+            cashRegisterId: openCash?.id || null,
+            note: `Generada desde cotización COT-${String(quote.number).padStart(6, '0')}`,
+            details: { create: detailData },
+          },
+          include: saleInclude,
+        });
+
+        // Descontar stock + registrar movimientos SALE en un solo insert
+        const stockById = new Map(products.map((p) => [p.id, p.stock]));
+        const movements = [];
+        for (const [productId, qty] of grouped) {
+          const previousStock = stockById.get(productId);
+          const newStock = previousStock - qty;
+          await tx.product.update({ where: { id: productId }, data: { stock: newStock } });
+          movements.push({
             type: 'SALE',
             quantity: -qty,
             previousStock,
@@ -164,17 +165,19 @@ export const quoteService = {
             productId,
             userId,
             saleId: sale.id,
-          },
+          });
+        }
+        await tx.stockMovement.createMany({ data: movements });
+
+        // Marcar la cotización como convertida
+        await tx.quote.update({
+          where: { id },
+          data: { status: 'CONVERTED', convertedSaleId: sale.id, convertedAt: new Date() },
         });
-      }
 
-      // Marcar la cotización como convertida
-      await tx.quote.update({
-        where: { id },
-        data: { status: 'CONVERTED', convertedSaleId: sale.id, convertedAt: new Date() },
-      });
-
-      return sale;
-    });
+        return sale;
+      },
+      { timeout: 20000, maxWait: 10000 }
+    );
   },
 };
