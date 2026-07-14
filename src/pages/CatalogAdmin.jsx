@@ -1,6 +1,5 @@
 // Página ADMIN: muestra el QR y el enlace del catálogo público para compartir.
 import { useEffect, useState } from 'react';
-import QRCode from 'qrcode';
 import toast from 'react-hot-toast';
 import { Download, Copy, ExternalLink, Share2, QrCode } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader.jsx';
@@ -10,8 +9,15 @@ export default function CatalogAdmin() {
   const [qrDataUrl, setQrDataUrl] = useState('');
 
   useEffect(() => {
-    // Genera el QR del enlace público como imagen (data URL)
-    QRCode.toDataURL(catalogUrl, { width: 320, margin: 2, color: { dark: '#1e293b', light: '#ffffff' } })
+    // La librería de QR se carga bajo demanda solo en esta página
+    import('qrcode')
+      .then(({ default: QRCode }) =>
+        QRCode.toDataURL(catalogUrl, {
+          width: 320,
+          margin: 2,
+          color: { dark: '#1e293b', light: '#ffffff' },
+        })
+      )
       .then(setQrDataUrl)
       .catch(() => toast.error('No se pudo generar el QR'));
   }, [catalogUrl]);

@@ -17,16 +17,16 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    // El chunk de PDF (jsPDF + html2canvas) es grande pero se carga bajo demanda
-    // (import dinámico al imprimir/descargar), por eso ampliamos el umbral del aviso.
-    chunkSizeWarningLimit: 800,
-    // Divide las librerías pesadas en chunks separados: cargan bajo demanda,
-    // se cachean por separado y evitan un único bundle enorme.
+    chunkSizeWarningLimit: 1500,
+    // IMPORTANTE: solo se separan librerías que NO dependen de React (jsPDF,
+    // xlsx, qrcode). Separar React o librerías que lo usan (recharts,
+    // react-hot-toast) provoca errores de orden de carga (React.memo undefined).
+    // Estas tres además se cargan bajo demanda (import dinámico), así que no
+    // pesan en la carga inicial.
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
-          // Ecosistema de generación de PDF (jsPDF + sus dependencias pesadas)
           if (
             id.includes('jspdf') ||
             id.includes('html2canvas') ||
@@ -38,13 +38,8 @@ export default defineConfig({
           )
             return 'pdf';
           if (id.includes('xlsx')) return 'xlsx';
-          if (id.includes('recharts') || id.includes('/d3-') || id.includes('victory'))
-            return 'charts';
           if (id.includes('qrcode')) return 'qr';
-          if (id.includes('lucide-react')) return 'icons';
-          if (id.includes('react-router') || id.includes('react-dom') || id.includes('/react/'))
-            return 'react-vendor';
-          return 'vendor';
+          return undefined; // el resto (React, recharts, etc.) queda junto
         },
       },
     },
