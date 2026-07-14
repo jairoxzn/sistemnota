@@ -16,6 +16,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export function createApp() {
   const app = express();
 
+  // Detrás de un proxy (Vercel, Render, etc.): necesario para detectar la IP
+  // real (rate-limit) y para HTTPS. Sin esto, express-rate-limit puede fallar.
+  app.set('trust proxy', 1);
+
   // Seguridad y utilidades
   app.use(helmet({ contentSecurityPolicy: false })); // CSP off para servir el SPA sin fricción
   app.use(cors({ origin: env.corsOrigin, credentials: true }));
