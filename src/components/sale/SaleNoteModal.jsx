@@ -1,12 +1,18 @@
 import { Printer, Download, X, Receipt } from 'lucide-react';
 import SaleNote from './SaleNote.jsx';
-import { downloadSalePdf, printSalePdf, printTicket80, downloadTicket80 } from '../../utils/pdf.js';
 
 // Modal con la vista previa de la nota + acciones:
 //  - A4: imprimir / descargar PDF (nota completa)
 //  - Ticket 80mm: imprimir / descargar (impresora térmica)
 export default function SaleNoteModal({ open, onClose, sale, store }) {
   if (!open || !sale) return null;
+
+  // La librería de PDF se carga solo al usarla (import dinámico) para no
+  // pesar en la carga inicial de la app.
+  const runPdf = async (fn) => {
+    const pdf = await import('../../utils/pdf.js');
+    pdf[fn](sale, store);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4">
@@ -22,18 +28,18 @@ export default function SaleNoteModal({ open, onClose, sale, store }) {
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="flex items-center text-xs font-semibold uppercase text-slate-400">A4:</span>
-            <button className="btn-secondary" onClick={() => printSalePdf(sale, store)}>
+            <button className="btn-secondary" onClick={() => runPdf('printSalePdf')}>
               <Printer className="h-4 w-4" /> Imprimir
             </button>
-            <button className="btn-primary" onClick={() => downloadSalePdf(sale, store)}>
+            <button className="btn-primary" onClick={() => runPdf('downloadSalePdf')}>
               <Download className="h-4 w-4" /> Descargar PDF
             </button>
             <span className="mx-1 border-l border-slate-200" />
             <span className="flex items-center text-xs font-semibold uppercase text-slate-400">Ticket 80mm:</span>
-            <button className="btn-secondary" onClick={() => printTicket80(sale, store)}>
+            <button className="btn-secondary" onClick={() => runPdf('printTicket80')}>
               <Receipt className="h-4 w-4" /> Imprimir
             </button>
-            <button className="btn-secondary" onClick={() => downloadTicket80(sale, store)}>
+            <button className="btn-secondary" onClick={() => runPdf('downloadTicket80')}>
               <Download className="h-4 w-4" /> Descargar
             </button>
           </div>

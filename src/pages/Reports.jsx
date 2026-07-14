@@ -15,8 +15,6 @@ import Spinner from '../components/ui/Spinner.jsx';
 import { reportApi } from '../services/index.js';
 import { formatMoney } from '../utils/format.js';
 import { exportToExcel } from '../utils/exportExcel.js';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 const PERIODS = [
   { key: 'day', label: 'Por día' },
@@ -58,7 +56,10 @@ export default function Reports() {
     );
   }
 
-  function exportTopPdf() {
+  async function exportTopPdf() {
+    // jsPDF se carga bajo demanda (import dinámico) para aligerar la carga inicial
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text('Reporte: Productos más vendidos', 14, 18);

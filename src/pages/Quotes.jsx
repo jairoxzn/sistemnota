@@ -12,7 +12,12 @@ import SaleNoteModal from '../components/sale/SaleNoteModal.jsx';
 import { quoteApi, productApi, customerApi } from '../services/index.js';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { formatMoney, formatDateTime, formatDate, quoteNumber, QUOTE_STATUS, PAYMENT_LABELS } from '../utils/format.js';
-import { downloadQuotePdf, printQuotePdf } from '../utils/quotePdf.js';
+
+// PDF de la proforma cargado bajo demanda (import dinámico)
+const runQuotePdf = async (fn, quote, store) => {
+  const pdf = await import('../utils/quotePdf.js');
+  pdf[fn](quote, store);
+};
 
 export default function Quotes() {
   const [data, setData] = useState({ items: [], totalPages: 1, page: 1 });
@@ -330,8 +335,8 @@ export default function Quotes() {
                 <p className="text-slate-500">{formatDateTime(view.createdAt)}{view.validUntil ? ` · válida hasta ${formatDate(view.validUntil)}` : ''}</p>
               </div>
               <div className="flex gap-2">
-                <button className="btn-secondary" onClick={() => printQuotePdf(view, store)}><Printer className="h-4 w-4" /> Imprimir</button>
-                <button className="btn-primary" onClick={() => downloadQuotePdf(view, store)}><Download className="h-4 w-4" /> PDF</button>
+                <button className="btn-secondary" onClick={() => runQuotePdf('printQuotePdf', view, store)}><Printer className="h-4 w-4" /> Imprimir</button>
+                <button className="btn-primary" onClick={() => runQuotePdf('downloadQuotePdf', view, store)}><Download className="h-4 w-4" /> PDF</button>
               </div>
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
