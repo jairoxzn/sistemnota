@@ -11,7 +11,7 @@ import { productApi, categoryApi } from '../services/index.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { formatMoney } from '../utils/format.js';
-import { productImageUrl } from '../utils/images.js';
+import ProductImage from '../components/ui/ProductImage.jsx';
 
 const emptyForm = { code: '', name: '', description: '', price: '', stock: '', categoryId: '', image: null };
 
@@ -180,13 +180,12 @@ export default function Products() {
                 {data.items.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
-                      {productImageUrl(p) ? (
-                        <img src={productImageUrl(p)} alt={p.name} className="h-10 w-10 rounded object-cover" loading="lazy" />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded bg-slate-100 text-slate-300">
-                          <ImageIcon className="h-5 w-5" />
-                        </div>
-                      )}
+                      <ProductImage
+                        product={p}
+                        className="h-10 w-10 rounded"
+                        imgClass="h-full w-full object-cover"
+                        iconClass="h-5 w-5 text-slate-300"
+                      />
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.code}</td>
                     <td className="px-4 py-3">

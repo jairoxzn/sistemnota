@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Search, Package, Phone, Mail, MapPin, Store } from 'lucide-react';
 import { publicApi } from '../services/index.js';
 import { useDebounce } from '../hooks/useDebounce.js';
-import { productImageUrl } from '../utils/images.js';
+import ProductImage from '../components/ui/ProductImage.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 
 export default function PublicCatalog() {
@@ -78,13 +78,12 @@ export default function PublicCatalog() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {products.map((p) => (
               <div key={p.id} className="card overflow-hidden">
-                <div className="flex h-40 items-center justify-center bg-slate-50">
-                  {productImageUrl(p) ? (
-                    <img src={productImageUrl(p)} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
-                  ) : (
-                    <Package className="h-12 w-12 text-slate-200" />
-                  )}
-                </div>
+                <ProductImage
+                  product={p}
+                  className="h-40 w-full"
+                  imgClass="h-full w-full object-contain p-2"
+                  iconClass="h-12 w-12 text-slate-200"
+                />
                 <div className="p-3">
                   {p.category && <span className="text-xs text-brand-600">{p.category}</span>}
                   <p className="line-clamp-2 text-sm font-semibold text-slate-800">{p.name}</p>

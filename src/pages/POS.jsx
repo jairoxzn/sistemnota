@@ -22,7 +22,7 @@ import { productApi, customerApi, saleApi, cashApi, settingsApi } from '../servi
 import { useCartStore } from '../store/cartStore.js';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { formatMoney, PAYMENT_LABELS } from '../utils/format.js';
-import { productImageUrl } from '../utils/images.js';
+import ProductImage from '../components/ui/ProductImage.jsx';
 
 export default function POS() {
   const [products, setProducts] = useState([]);
@@ -160,8 +160,13 @@ export default function POS() {
                         {p.stock}
                       </span>
                     </div>
-                    {productImageUrl(p) && (
-                      <img src={productImageUrl(p)} alt={p.name} className="mb-2 h-20 w-full rounded-md object-cover" loading="lazy" />
+                    {p.hasImage && (
+                      <ProductImage
+                        product={p}
+                        className="mb-2 h-20 w-full rounded-md"
+                        imgClass="h-full w-full object-contain p-1"
+                        iconClass="h-6 w-6 text-slate-200"
+                      />
                     )}
                     <p className="line-clamp-2 flex-1 text-sm font-medium text-slate-800">{p.name}</p>
                     <p className="mt-2 text-lg font-bold text-brand-600">{formatMoney(p.price)}</p>
