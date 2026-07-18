@@ -13,6 +13,13 @@ export const updateStoreSettingsSchema = z.object({
     requireCashRegister: z
       .preprocess((v) => (typeof v === 'string' ? v === 'true' : v), z.boolean())
       .default(true),
+    // Contacto y redes (opcionales)
+    whatsapp: z.string().max(30).optional().or(z.literal('')),
+    hours: z.string().max(120).optional().or(z.literal('')),
+    mapsUrl: z.string().max(500).optional().or(z.literal('')),
+    facebook: z.string().max(200).optional().or(z.literal('')),
+    instagram: z.string().max(200).optional().or(z.literal('')),
+    tiktok: z.string().max(200).optional().or(z.literal('')),
     // Logo como data URL (base64) o cadena vacía para quitarlo
     logo: z
       .string()

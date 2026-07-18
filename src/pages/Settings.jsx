@@ -8,6 +8,7 @@ import { settingsApi } from '../services/index.js';
 const empty = {
   name: '', ruc: '', address: '', phone: '', email: '',
   currency: 'S/', thankYouMessage: '', lowStockThreshold: 10, requireCashRegister: true, logo: null,
+  whatsapp: '', hours: '', mapsUrl: '', facebook: '', instagram: '', tiktok: '',
 };
 
 // Máximo del logo antes de comprimir (para no exceder el límite del body)
@@ -134,6 +135,37 @@ export default function Settings() {
             <div>
               <label className="label">Mensaje de agradecimiento</label>
               <input className="input" value={form.thankYouMessage} onChange={(e) => setForm({ ...form, thankYouMessage: e.target.value })} placeholder="¡Gracias por su compra!" />
+            </div>
+          </div>
+
+          {/* Contacto y redes (se muestran en el catálogo público) */}
+          <div className="rounded-lg border border-slate-200 p-3">
+            <p className="mb-3 text-sm font-semibold text-slate-700">Contacto y redes (catálogo público)</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="label">WhatsApp (para pedidos)</label>
+                <input className="input" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="51987654321 (código país + número)" />
+              </div>
+              <div>
+                <label className="label">Horario de atención</label>
+                <input className="input" value={form.hours} onChange={(e) => setForm({ ...form, hours: e.target.value })} placeholder="Lun a Sáb 8:00 - 20:00" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Enlace de Google Maps</label>
+                <input className="input" value={form.mapsUrl} onChange={(e) => setForm({ ...form, mapsUrl: e.target.value })} placeholder="https://maps.app.goo.gl/..." />
+              </div>
+              <div>
+                <label className="label">Facebook</label>
+                <input className="input" value={form.facebook} onChange={(e) => setForm({ ...form, facebook: e.target.value })} placeholder="https://facebook.com/mitienda" />
+              </div>
+              <div>
+                <label className="label">Instagram</label>
+                <input className="input" value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} placeholder="https://instagram.com/mitienda" />
+              </div>
+              <div>
+                <label className="label">TikTok</label>
+                <input className="input" value={form.tiktok} onChange={(e) => setForm({ ...form, tiktok: e.target.value })} placeholder="https://tiktok.com/@mitienda" />
+              </div>
             </div>
           </div>
 

@@ -54,6 +54,12 @@ export const catalogService = {
         email: settings.email,
         address: settings.address,
         currency: settings.currency,
+        whatsapp: settings.whatsapp,
+        hours: settings.hours,
+        mapsUrl: settings.mapsUrl,
+        facebook: settings.facebook,
+        instagram: settings.instagram,
+        tiktok: settings.tiktok,
       },
       categories,
       products: products.map((p) => ({

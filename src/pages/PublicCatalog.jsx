@@ -1,10 +1,21 @@
 // Catálogo PÚBLICO — accesible sin login (se comparte con clientes por enlace/QR).
 import { useEffect, useState } from 'react';
-import { Search, Package, Phone, Mail, MapPin, Store } from 'lucide-react';
+import {
+  Search, Package, Phone, Mail, MapPin, Store, Clock, MessageCircle,
+  Facebook, Instagram, Music2,
+} from 'lucide-react';
 import { publicApi } from '../services/index.js';
 import { useDebounce } from '../hooks/useDebounce.js';
 import ProductImage from '../components/ui/ProductImage.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
+
+// Enlace de WhatsApp (wa.me) con mensaje opcional. Devuelve null si no hay número.
+function waLink(number, text) {
+  const digits = String(number || '').replace(/\D/g, '');
+  if (!digits) return null;
+  const q = text ? `?text=${encodeURIComponent(text)}` : '';
+  return `https://wa.me/${digits}${q}`;
+}
 
 export default function PublicCatalog() {
   const [store, setStore] = useState({});
@@ -101,9 +112,89 @@ export default function PublicCatalog() {
         )}
       </main>
 
-      <footer className="mx-auto max-w-6xl px-4 py-8 text-center text-xs text-slate-400">
-        Catálogo generado por SistemaNota
-      </footer>
+      {/* Información de la tienda */}
+      <section className="border-t border-slate-200 bg-white">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <h3 className="mb-2 font-semibold text-slate-800">{store.name || 'Nuestra tienda'}</h3>
+            {store.address && (
+              <p className="flex items-start gap-2 text-sm text-slate-500">
+                <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0" /> {store.address}
+              </p>
+            )}
+            {store.mapsUrl && (
+              <a href={store.mapsUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline">
+                <MapPin className="h-4 w-4" /> Ver en Google Maps
+              </a>
+            )}
+          </div>
+
+          <div>
+            <h3 className="mb-2 font-semibold text-slate-800">Contacto</h3>
+            <ul className="space-y-1.5 text-sm text-slate-500">
+              {store.phone && <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> {store.phone}</li>}
+              {store.email && <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> {store.email}</li>}
+              {store.whatsapp && (
+                <li>
+                  <a href={waLink(store.whatsapp)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-medium text-emerald-600 hover:underline">
+                    <MessageCircle className="h-4 w-4" /> Escríbenos por WhatsApp
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="mb-2 font-semibold text-slate-800">Horario</h3>
+            {store.hours ? (
+              <p className="flex items-start gap-2 text-sm text-slate-500">
+                <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" /> {store.hours}
+              </p>
+            ) : (
+              <p className="text-sm text-slate-400">—</p>
+            )}
+          </div>
+
+          <div>
+            <h3 className="mb-2 font-semibold text-slate-800">Síguenos</h3>
+            <div className="flex gap-3">
+              {store.facebook && (
+                <a href={store.facebook} target="_blank" rel="noreferrer" className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-brand-50 hover:text-brand-600" aria-label="Facebook">
+                  <Facebook className="h-5 w-5" />
+                </a>
+              )}
+              {store.instagram && (
+                <a href={store.instagram} target="_blank" rel="noreferrer" className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-brand-50 hover:text-brand-600" aria-label="Instagram">
+                  <Instagram className="h-5 w-5" />
+                </a>
+              )}
+              {store.tiktok && (
+                <a href={store.tiktok} target="_blank" rel="noreferrer" className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-brand-50 hover:text-brand-600" aria-label="TikTok">
+                  <Music2 className="h-5 w-5" />
+                </a>
+              )}
+              {!store.facebook && !store.instagram && !store.tiktok && (
+                <span className="text-sm text-slate-400">—</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <p className="pb-8 text-center text-xs text-slate-400">Catálogo generado por SistemaNota</p>
+      </section>
+
+      {/* Botón flotante de WhatsApp (siempre visible) */}
+      {store.whatsapp && (
+        <a
+          href={waLink(store.whatsapp, `¡Hola ${store.name || ''}! Vi su catálogo y quisiera hacer un pedido.`)}
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-3 font-semibold text-white shadow-lg transition hover:bg-emerald-600"
+          aria-label="Pedir por WhatsApp"
+        >
+          <MessageCircle className="h-6 w-6" />
+          <span className="hidden sm:inline">Pedir por WhatsApp</span>
+        </a>
+      )}
     </div>
   );
 }

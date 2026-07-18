@@ -29,6 +29,19 @@ router.get(
   })
 );
 
+// Imagen para la vista previa al compartir (Open Graph): el logo de la tienda.
+router.get(
+  '/og-image',
+  asyncHandler(async (_req, res) => {
+    const s = await storeSettingsService.get();
+    const match = s.logo && /^data:(image\/[\w+.-]+);base64,(.+)$/s.exec(s.logo);
+    if (!match) return res.status(404).end();
+    res.set('Content-Type', match[1]);
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(Buffer.from(match[2], 'base64'));
+  })
+);
+
 // Branding: datos mínimos de la tienda para personalizar el login.
 router.get(
   '/branding',

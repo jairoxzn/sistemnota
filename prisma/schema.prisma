@@ -230,6 +230,15 @@ model StoreSettings {
   thankYouMessage String   @default("¡Gracias por su compra!")
   lowStockThreshold Int    @default(10) // umbral para alertas de stock bajo
   requireCashRegister Boolean @default(true) // exigir caja abierta para poder vender
+
+  // Contacto y redes (se muestran en el catálogo público)
+  whatsapp  String @default("") // número para pedidos por WhatsApp (solo dígitos)
+  hours     String @default("") // horario de atención (texto libre)
+  mapsUrl   String @default("") // enlace a Google Maps
+  facebook  String @default("")
+  instagram String @default("")
+  tiktok    String @default("")
+
   updatedAt       DateTime @updatedAt
 
   @@map("store_settings")
