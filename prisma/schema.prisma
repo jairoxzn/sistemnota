@@ -53,16 +53,6 @@ enum CashStatus {
   CLOSED // Caja cerrada (arqueada)
 }
 
-enum ExpenseCategory {
-  RENT // Alquiler
-  UTILITIES // Servicios (luz, agua, internet)
-  PAYROLL // Sueldos
-  SUPPLIES // Insumos / materiales
-  MAINTENANCE // Mantenimiento
-  TAXES // Impuestos
-  OTHER // Otro
-}
-
 enum AuditAction {
   PRODUCT_PRICE_CHANGED // Se cambió el precio de un producto
   SALE_CANCELLED // Se anuló una venta
@@ -89,7 +79,6 @@ model User {
   quotes         Quote[] // cotizaciones creadas
   cashOpened     CashRegister[]  @relation("CashOpener") // cajas abiertas
   cashClosed     CashRegister[]  @relation("CashCloser") // cajas cerradas
-  expenses       Expense[] // gastos registrados por este usuario
   auditLogs      AuditLog[] // acciones de auditoría realizadas por este usuario
 
   @@map("users")
@@ -342,27 +331,6 @@ model CashRegister {
 
   @@index([status])
   @@map("cash_registers")
-}
-
-// ─── Gastos operativos ───────────────────────────────────────────────
-// Egresos del negocio (alquiler, servicios, sueldos, etc.) que junto a las
-// ventas permiten calcular la utilidad neta en Reportes.
-
-model Expense {
-  id          String          @id @default(cuid())
-  category    ExpenseCategory
-  description String
-  amount      Decimal         @db.Decimal(10, 2)
-  date        DateTime        @default(now()) // fecha en que ocurrió el gasto
-  note        String?
-  createdAt   DateTime        @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@index([date])
-  @@index([category])
-  @@map("expenses")
 }
 
 // ─── Auditoría ────────────────────────────────────────────────────────

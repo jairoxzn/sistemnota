@@ -9,7 +9,6 @@ router.use(authenticate);
 router.get('/summary', reportController.summary);
 router.get('/sales', reportController.salesByPeriod);
 router.get('/payment-methods', reportController.paymentMethods);
-router.get('/expenses', reportController.expenses);
 router.get('/top-products', reportController.topProducts);
 router.get('/stock', reportController.stock);
 router.get('/low-stock', reportController.lowStock);

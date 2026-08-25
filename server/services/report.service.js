@@ -146,26 +146,6 @@ export const reportService = {
       .sort((a, b) => b.total - a.total);
   },
 
-  // Gastos operativos del rango (por categoría), para calcular utilidad neta
-  // junto a las ventas del mismo período en Reportes.
-  async expensesByPeriod({ period = 'day', from, to } = {}) {
-    const { sinceDate, untilDate } = resolveDateRange({ period, from, to });
-
-    const grouped = await prisma.expense.groupBy({
-      by: ['category'],
-      where: { date: { gte: sinceDate, ...(untilDate ? { lte: untilDate } : {}) } },
-      _sum: { amount: true },
-    });
-
-    const total = grouped.reduce((a, g) => a + Number(g._sum.amount || 0), 0);
-    return {
-      total: +total.toFixed(2),
-      byCategory: grouped
-        .map((g) => ({ category: g.category, total: +Number(g._sum.amount || 0).toFixed(2) }))
-        .sort((a, b) => b.total - a.total),
-    };
-  },
-
   // Productos más vendidos (por cantidad)
   async topProducts(limit = 10) {
     const grouped = await prisma.saleDetail.groupBy({

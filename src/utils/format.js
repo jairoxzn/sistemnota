@@ -42,16 +42,6 @@ export function paymentLabel(method) {
   return PAYMENT_LABELS[method] || method;
 }
 
-export const EXPENSE_CATEGORY_LABELS = {
-  RENT: 'Alquiler',
-  UTILITIES: 'Servicios',
-  PAYROLL: 'Sueldos',
-  SUPPLIES: 'Insumos',
-  MAINTENANCE: 'Mantenimiento',
-  TAXES: 'Impuestos',
-  OTHER: 'Otro',
-};
-
 export const AUDIT_ACTION_LABELS = {
   PRODUCT_PRICE_CHANGED: 'Cambio de precio',
   SALE_CANCELLED: 'Venta anulada',

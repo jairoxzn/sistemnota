@@ -25,15 +25,6 @@ export const reportController = {
     res.json({ success: true, data });
   }),
 
-  expenses: asyncHandler(async (req, res) => {
-    const { from, to } = req.query;
-    const period = ['day', 'week', 'month', 'custom'].includes(req.query.period)
-      ? req.query.period
-      : 'day';
-    const data = await reportService.expensesByPeriod({ period, from, to });
-    res.json({ success: true, ...data });
-  }),
-
   topProducts: asyncHandler(async (req, res) => {
     const limit = Math.min(Number(req.query.limit) || 10, 50);
     const data = await reportService.topProducts(limit);

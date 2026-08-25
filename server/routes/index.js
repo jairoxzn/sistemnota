@@ -11,7 +11,6 @@ import quoteRoutes from './quote.routes.js';
 import publicRoutes from './public.routes.js';
 import userRoutes from './user.routes.js';
 import cashRegisterRoutes from './cashRegister.routes.js';
-import expenseRoutes from './expense.routes.js';
 import auditRoutes from './audit.routes.js';
 
 const router = Router();
@@ -32,7 +31,6 @@ router.use('/settings', storeSettingsRoutes);
 router.use('/stock-movements', stockMovementRoutes);
 router.use('/users', userRoutes);
 router.use('/cash', cashRegisterRoutes);
-router.use('/expenses', expenseRoutes);
 router.use('/audit', auditRoutes);
 
 export default router;
