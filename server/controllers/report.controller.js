@@ -8,9 +8,21 @@ export const reportController = {
   }),
 
   salesByPeriod: asyncHandler(async (req, res) => {
-    const period = ['day', 'week', 'month'].includes(req.query.period) ? req.query.period : 'day';
-    const data = await reportService.salesByPeriod(period);
+    const { from, to } = req.query;
+    const period = ['day', 'week', 'month', 'custom'].includes(req.query.period)
+      ? req.query.period
+      : 'day';
+    const data = await reportService.salesByPeriod({ period, from, to });
     res.json({ success: true, period, data });
+  }),
+
+  paymentMethods: asyncHandler(async (req, res) => {
+    const { from, to } = req.query;
+    const period = ['day', 'week', 'month', 'custom'].includes(req.query.period)
+      ? req.query.period
+      : 'day';
+    const data = await reportService.paymentMethodBreakdown({ period, from, to });
+    res.json({ success: true, data });
   }),
 
   topProducts: asyncHandler(async (req, res) => {

@@ -39,7 +39,9 @@ export const saleApi = {
 
 export const reportApi = {
   summary: () => api.get('/reports/summary').then((r) => r.data),
-  salesByPeriod: (period) => api.get('/reports/sales', { params: { period } }).then((r) => r.data),
+  // params: { period } o { period: 'custom', from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }
+  salesByPeriod: (params) => api.get('/reports/sales', { params }).then((r) => r.data),
+  paymentMethods: (params) => api.get('/reports/payment-methods', { params }).then((r) => r.data),
   topProducts: (limit = 10) => api.get('/reports/top-products', { params: { limit } }).then((r) => r.data),
   stock: () => api.get('/reports/stock').then((r) => r.data),
   lowStock: () => api.get('/reports/low-stock').then((r) => r.data),

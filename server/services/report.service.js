@@ -10,6 +10,47 @@ function daysAgo(n) {
   d.setDate(d.getDate() - n);
   return d;
 }
+function startOfDay(value) {
+  const d = new Date(value);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+function endOfDay(value) {
+  const d = new Date(value);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+function weekBucket(d) {
+  const onejan = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - onejan) / 86400000 + onejan.getDay() + 1) / 7);
+  return `${d.getFullYear()}-S${String(week).padStart(2, '0')}`;
+}
+function monthBucket(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function dayBucket(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+// Resuelve el rango de fechas y la granularidad de agrupación (bucket) a partir
+// del período seleccionado. 'custom' usa un rango "desde–hasta" explícito y
+// elige automáticamente día/semana/mes según cuántos días abarque el rango.
+function resolveDateRange({ period, from, to }) {
+  if (period === 'custom' && from && to) {
+    const sinceDate = startOfDay(from);
+    const untilDate = endOfDay(to);
+    const days = Math.max(1, Math.round((untilDate - sinceDate) / 86400000));
+    const bucket = days <= 31 ? dayBucket : days <= 180 ? weekBucket : monthBucket;
+    return { sinceDate, untilDate, bucket };
+  }
+  if (period === 'month') {
+    return { sinceDate: daysAgo(365), untilDate: null, bucket: monthBucket };
+  }
+  if (period === 'week') {
+    return { sinceDate: daysAgo(84), untilDate: null, bucket: weekBucket }; // ~12 semanas
+  }
+  return { sinceDate: daysAgo(14), untilDate: null, bucket: dayBucket };
+}
 
 // Umbral de stock bajo configurable (viene de StoreSettings; por defecto 10)
 async function getLowStockThreshold() {
@@ -51,27 +92,16 @@ export const reportService = {
     };
   },
 
-  // Ventas agrupadas por período: 'day' (últimos 14 días), 'week', 'month' (últimos 12 meses)
-  async salesByPeriod(period = 'day') {
-    let sinceDate;
-    let bucket;
-    if (period === 'month') {
-      sinceDate = daysAgo(365);
-      bucket = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    } else if (period === 'week') {
-      sinceDate = daysAgo(84); // ~12 semanas
-      bucket = (d) => {
-        const onejan = new Date(d.getFullYear(), 0, 1);
-        const week = Math.ceil(((d - onejan) / 86400000 + onejan.getDay() + 1) / 7);
-        return `${d.getFullYear()}-S${String(week).padStart(2, '0')}`;
-      };
-    } else {
-      sinceDate = daysAgo(14);
-      bucket = (d) => d.toISOString().slice(0, 10);
-    }
+  // Ventas agrupadas por período: 'day' (últimos 14 días), 'week' (~12 semanas),
+  // 'month' (últimos 12 meses) o 'custom' (rango "desde–hasta" explícito).
+  async salesByPeriod({ period = 'day', from, to } = {}) {
+    const { sinceDate, untilDate, bucket } = resolveDateRange({ period, from, to });
 
     const sales = await prisma.sale.findMany({
-      where: { createdAt: { gte: sinceDate }, status: 'ACTIVE' },
+      where: {
+        createdAt: { gte: sinceDate, ...(untilDate ? { lte: untilDate } : {}) },
+        status: 'ACTIVE',
+      },
       select: { total: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -85,6 +115,35 @@ export const reportService = {
       map.set(key, acc);
     }
     return [...map.values()].map((r) => ({ ...r, total: +r.total.toFixed(2) }));
+  },
+
+  // Desglose de ventas por método de pago (Efectivo, Transferencia, Tarjeta,
+  // Yape, Plin, Otro) para el mismo rango de fechas del gráfico de ventas.
+  async paymentMethodBreakdown({ period = 'day', from, to } = {}) {
+    const { sinceDate, untilDate } = resolveDateRange({ period, from, to });
+
+    const grouped = await prisma.sale.groupBy({
+      by: ['paymentMethod'],
+      where: {
+        createdAt: { gte: sinceDate, ...(untilDate ? { lte: untilDate } : {}) },
+        status: 'ACTIVE',
+      },
+      _sum: { total: true },
+      _count: true,
+    });
+
+    const totalRevenue = grouped.reduce((a, g) => a + Number(g._sum.total || 0), 0);
+    return grouped
+      .map((g) => {
+        const total = +Number(g._sum.total || 0).toFixed(2);
+        return {
+          method: g.paymentMethod,
+          total,
+          count: g._count,
+          percent: totalRevenue > 0 ? +((total / totalRevenue) * 100).toFixed(1) : 0,
+        };
+      })
+      .sort((a, b) => b.total - a.total);
   },
 
   // Productos más vendidos (por cantidad)

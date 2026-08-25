@@ -26,7 +26,7 @@ export default function Dashboard() {
   useEffect(() => {
     Promise.all([
       reportApi.summary(),
-      reportApi.salesByPeriod('day'),
+      reportApi.salesByPeriod({ period: 'day' }),
       reportApi.topProducts(5),
       reportApi.lowStock(),
     ])
