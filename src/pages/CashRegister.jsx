@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
-  Wallet, LockOpen, Lock, Banknote, CreditCard, ArrowLeftRight, MoreHorizontal, History,
+  Wallet, LockOpen, Lock, Banknote, CreditCard, ArrowLeftRight, MoreHorizontal, History, Smartphone,
 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader.jsx';
 import Modal from '../components/ui/Modal.jsx';
@@ -14,6 +14,8 @@ const METHOD_META = {
   CASH: { label: 'Efectivo', icon: Banknote },
   TRANSFER: { label: 'Transferencia', icon: ArrowLeftRight },
   CARD: { label: 'Tarjeta', icon: CreditCard },
+  YAPE: { label: 'Yape', icon: Smartphone },
+  PLIN: { label: 'Plin', icon: Smartphone },
   OTHER: { label: 'Otro', icon: MoreHorizontal },
 };
 
@@ -117,7 +119,7 @@ export default function CashRegister() {
             <h3 className="mb-4 font-semibold text-slate-800">
               Ventas del turno · {current.breakdown.salesCount} venta(s) · {formatMoney(current.breakdown.salesTotal)}
             </h3>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {Object.entries(METHOD_META).map(([key, meta]) => {
                 const Icon = meta.icon;
                 return (

@@ -24,6 +24,8 @@ enum PaymentMethod {
   CASH // Efectivo
   TRANSFER // Transferencia
   CARD // Tarjeta
+  YAPE // Yape
+  PLIN // Plin
   OTHER // Otro
 }
 

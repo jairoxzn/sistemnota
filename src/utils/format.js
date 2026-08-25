@@ -33,6 +33,8 @@ export const PAYMENT_LABELS = {
   CASH: 'Efectivo',
   TRANSFER: 'Transferencia',
   CARD: 'Tarjeta',
+  YAPE: 'Yape',
+  PLIN: 'Plin',
   OTHER: 'Otro',
 };
 

@@ -19,7 +19,7 @@ export const createQuoteSchema = z.object({
 
 export const convertQuoteSchema = z.object({
   body: z.object({
-    paymentMethod: z.enum(['CASH', 'TRANSFER', 'CARD', 'OTHER']).default('CASH'),
+    paymentMethod: z.enum(['CASH', 'TRANSFER', 'CARD', 'YAPE', 'PLIN', 'OTHER']).default('CASH'),
   }),
   params: z.object({ id: z.string().min(1) }),
 });

@@ -12,7 +12,7 @@ async function computeBreakdown(cashRegisterId) {
     _count: true,
   });
 
-  const byMethod = { CASH: 0, TRANSFER: 0, CARD: 0, OTHER: 0 };
+  const byMethod = { CASH: 0, TRANSFER: 0, CARD: 0, YAPE: 0, PLIN: 0, OTHER: 0 };
   let salesCount = 0;
   let salesTotal = 0;
   for (const g of grouped) {

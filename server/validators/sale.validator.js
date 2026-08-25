@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createSaleSchema = z.object({
   body: z.object({
     customerId: z.string().optional().nullable().or(z.literal('')),
-    paymentMethod: z.enum(['CASH', 'TRANSFER', 'CARD', 'OTHER']).default('CASH'),
+    paymentMethod: z.enum(['CASH', 'TRANSFER', 'CARD', 'YAPE', 'PLIN', 'OTHER']).default('CASH'),
     discount: z.coerce.number().min(0, 'El descuento no puede ser negativo').default(0),
     note: z.string().max(300).optional().or(z.literal('')),
     items: z
