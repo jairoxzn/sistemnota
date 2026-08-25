@@ -53,6 +53,24 @@ enum CashStatus {
   CLOSED // Caja cerrada (arqueada)
 }
 
+enum ExpenseCategory {
+  RENT // Alquiler
+  UTILITIES // Servicios (luz, agua, internet)
+  PAYROLL // Sueldos
+  SUPPLIES // Insumos / materiales
+  MAINTENANCE // Mantenimiento
+  TAXES // Impuestos
+  OTHER // Otro
+}
+
+enum AuditAction {
+  PRODUCT_PRICE_CHANGED // Se cambió el precio de un producto
+  SALE_CANCELLED // Se anuló una venta
+  STOCK_ADJUSTED // Ajuste o merma manual de inventario
+  USER_ROLE_CHANGED // Se cambió el rol de un usuario
+  USER_STATUS_CHANGED // Se activó/desactivó un usuario
+}
+
 // ─── Usuarios (autenticación y roles) ───────────────────────────────
 
 model User {
@@ -71,6 +89,8 @@ model User {
   quotes         Quote[] // cotizaciones creadas
   cashOpened     CashRegister[]  @relation("CashOpener") // cajas abiertas
   cashClosed     CashRegister[]  @relation("CashCloser") // cajas cerradas
+  expenses       Expense[] // gastos registrados por este usuario
+  auditLogs      AuditLog[] // acciones de auditoría realizadas por este usuario
 
   @@map("users")
 }
@@ -322,4 +342,47 @@ model CashRegister {
 
   @@index([status])
   @@map("cash_registers")
+}
+
+// ─── Gastos operativos ───────────────────────────────────────────────
+// Egresos del negocio (alquiler, servicios, sueldos, etc.) que junto a las
+// ventas permiten calcular la utilidad neta en Reportes.
+
+model Expense {
+  id          String          @id @default(cuid())
+  category    ExpenseCategory
+  description String
+  amount      Decimal         @db.Decimal(10, 2)
+  date        DateTime        @default(now()) // fecha en que ocurrió el gasto
+  note        String?
+  createdAt   DateTime        @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([date])
+  @@index([category])
+  @@map("expenses")
+}
+
+// ─── Auditoría ────────────────────────────────────────────────────────
+// Registro de acciones sensibles (cambios de precio, anulaciones de venta,
+// ajustes de stock, cambios de rol/estado de usuarios) para control interno.
+// El detalle propio de cada acción (ej. motivo de anulación, kardex) sigue
+// viviendo en su tabla original; aquí solo queda un rastro unificado y legible.
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  action    AuditAction
+  entity    String // "Product" | "Sale" | "User" | ...
+  entityId  String?
+  summary   String // descripción legible, ej. "Cambió el precio de "Coca Cola 500ml" de S/ 3.50 a S/ 4.00"
+  createdAt DateTime    @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([action])
+  @@map("audit_logs")
 }

@@ -18,7 +18,7 @@ export const productController = {
   }),
 
   update: asyncHandler(async (req, res) => {
-    const product = await productService.update(req.params.id, req.body);
+    const product = await productService.update(req.params.id, req.body, req.user.id);
     res.json({ success: true, product });
   }),
 

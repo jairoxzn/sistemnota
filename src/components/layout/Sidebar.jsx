@@ -14,6 +14,8 @@ import {
   UserCog,
   Settings as SettingsIcon,
   Store,
+  Receipt,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 
@@ -29,8 +31,10 @@ const links = [
   { to: '/categories', label: 'Categorías', icon: Tags, admin: true },
   { to: '/customers', label: 'Clientes', icon: Users },
   { to: '/reports', label: 'Reportes', icon: BarChart3, admin: true },
+  { to: '/expenses', label: 'Gastos', icon: Receipt, admin: true },
   { to: '/catalog-qr', label: 'Catálogo QR', icon: QrCode, admin: true },
   { to: '/users', label: 'Usuarios', icon: UserCog, admin: true },
+  { to: '/audit', label: 'Auditoría', icon: ShieldCheck, admin: true },
   { to: '/settings', label: 'Configuración', icon: SettingsIcon, admin: true },
 ];
 

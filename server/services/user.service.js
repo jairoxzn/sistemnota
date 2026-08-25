@@ -1,6 +1,9 @@
 import { prisma } from '../config/prisma.js';
 import { ApiError } from '../utils/ApiError.js';
 import { hashPassword } from '../utils/password.js';
+import { auditService } from './audit.service.js';
+
+const ROLE_LABEL = { ADMIN: 'Administrador', SELLER: 'Vendedor' };
 
 const publicSelect = {
   id: true,
@@ -64,7 +67,7 @@ export const userService = {
       if (other) throw ApiError.conflict('El correo ya está registrado');
     }
 
-    return prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id },
       data: {
         ...(data.name !== undefined ? { name: data.name } : {}),
@@ -74,6 +77,27 @@ export const userService = {
       },
       select: publicSelect,
     });
+
+    if (data.role !== undefined && data.role !== user.role) {
+      await auditService.log({
+        action: 'USER_ROLE_CHANGED',
+        entity: 'User',
+        entityId: id,
+        summary: `Cambió el rol de "${user.name}" de ${ROLE_LABEL[user.role] || user.role} a ${ROLE_LABEL[data.role] || data.role}`,
+        userId: currentUserId,
+      });
+    }
+    if (data.active !== undefined && data.active !== user.active) {
+      await auditService.log({
+        action: 'USER_STATUS_CHANGED',
+        entity: 'User',
+        entityId: id,
+        summary: `${data.active ? 'Activó' : 'Desactivó'} la cuenta de "${user.name}"`,
+        userId: currentUserId,
+      });
+    }
+
+    return updated;
   },
 
   async resetPassword(id, newPassword) {

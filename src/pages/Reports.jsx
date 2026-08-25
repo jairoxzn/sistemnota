@@ -12,9 +12,10 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
-import { FileDown, FileText } from 'lucide-react';
+import { FileDown, FileText, TrendingUp, TrendingDown, Scale } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
+import StatCard from '../components/ui/StatCard.jsx';
 import { reportApi } from '../services/index.js';
 import { formatMoney, PAYMENT_LABELS } from '../utils/format.js';
 import { exportToExcel } from '../utils/exportExcel.js';
@@ -49,6 +50,7 @@ export default function Reports() {
   const [dateTo, setDateTo] = useState(todayStr());
   const [salesData, setSalesData] = useState([]);
   const [paymentBreakdown, setPaymentBreakdown] = useState([]);
+  const [expensesTotal, setExpensesTotal] = useState(0);
   const [topProducts, setTopProducts] = useState([]);
   const [stock, setStock] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,12 +62,14 @@ export default function Reports() {
     Promise.all([
       reportApi.salesByPeriod(params),
       reportApi.paymentMethods(params),
+      reportApi.expenses(params),
       reportApi.topProducts(10),
       reportApi.stock(),
     ])
-      .then(([sales, pm, top, st]) => {
+      .then(([sales, pm, exp, top, st]) => {
         setSalesData(sales.data);
         setPaymentBreakdown(pm.data);
+        setExpensesTotal(exp.total);
         setTopProducts(top.data);
         setStock(st.data);
       })
@@ -108,10 +112,24 @@ export default function Reports() {
 
   const totalRevenue = salesData.reduce((a, s) => a + s.total, 0);
   const inventoryValue = stock.reduce((a, s) => a + s.value, 0);
+  const netProfit = totalRevenue - expensesTotal;
 
   return (
     <div>
-      <PageHeader title="Reportes" subtitle="Análisis de ventas e inventario" />
+      <PageHeader title="Reportes" subtitle="Análisis de ventas, gastos e inventario" />
+
+      {/* Ingresos / Gastos / Utilidad neta del período seleccionado */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard title="Ingresos" value={formatMoney(totalRevenue)} icon={TrendingUp} color="green" />
+        <StatCard title="Gastos" value={formatMoney(expensesTotal)} icon={TrendingDown} color="red" />
+        <StatCard
+          title="Utilidad neta"
+          value={formatMoney(netProfit)}
+          hint={netProfit < 0 ? 'El período cerró en pérdida' : undefined}
+          icon={Scale}
+          color={netProfit >= 0 ? 'brand' : 'red'}
+        />
+      </div>
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Ventas por período */}

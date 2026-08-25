@@ -1,5 +1,6 @@
 import { prisma } from '../config/prisma.js';
 import { ApiError } from '../utils/ApiError.js';
+import { auditService } from './audit.service.js';
 
 // Tipos que puede registrar el usuario manualmente y el signo que aplican al stock.
 // ENTRY (+), ADJUSTMENT (+/-, según signo enviado), LOSS (-).
@@ -59,6 +60,22 @@ export const stockMovementService = {
         },
         include: movementInclude,
       });
+    }).then(async (movement) => {
+      // Solo se audita lo manual "sensible" (ajustes y mermas), no las entradas
+      // rutinarias de mercancía.
+      if (type === 'ADJUSTMENT' || type === 'LOSS') {
+        await auditService.log({
+          action: 'STOCK_ADJUSTED',
+          entity: 'Product',
+          entityId: productId,
+          summary:
+            `${type === 'LOSS' ? 'Registró una merma' : 'Ajustó el stock'} de "${movement.product.name}" ` +
+            `(${movement.quantity >= 0 ? '+' : ''}${movement.quantity} u.)` +
+            (reason ? ` — ${reason}` : ''),
+          userId,
+        });
+      }
+      return movement;
     });
   },
 

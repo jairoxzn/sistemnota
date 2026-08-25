@@ -42,6 +42,7 @@ export const reportApi = {
   // params: { period } o { period: 'custom', from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }
   salesByPeriod: (params) => api.get('/reports/sales', { params }).then((r) => r.data),
   paymentMethods: (params) => api.get('/reports/payment-methods', { params }).then((r) => r.data),
+  expenses: (params) => api.get('/reports/expenses', { params }).then((r) => r.data),
   topProducts: (limit = 10) => api.get('/reports/top-products', { params: { limit } }).then((r) => r.data),
   stock: () => api.get('/reports/stock').then((r) => r.data),
   lowStock: () => api.get('/reports/low-stock').then((r) => r.data),
@@ -85,4 +86,15 @@ export const cashApi = {
   close: (payload) => api.post('/cash/close', payload).then((r) => r.data),
   list: (params) => api.get('/cash', { params }).then((r) => r.data),
   get: (id) => api.get(`/cash/${id}`).then((r) => r.data),
+};
+
+export const expenseApi = {
+  list: (params) => api.get('/expenses', { params }).then((r) => r.data),
+  create: (payload) => api.post('/expenses', payload).then((r) => r.data),
+  update: (id, payload) => api.put(`/expenses/${id}`, payload).then((r) => r.data),
+  remove: (id) => api.delete(`/expenses/${id}`).then((r) => r.data),
+};
+
+export const auditApi = {
+  list: (params) => api.get('/audit', { params }).then((r) => r.data),
 };

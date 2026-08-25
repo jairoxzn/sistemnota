@@ -1,5 +1,8 @@
 import { prisma } from '../config/prisma.js';
 import { ApiError } from '../utils/ApiError.js';
+import { auditService } from './audit.service.js';
+
+const money = (v) => `S/ ${Number(v).toFixed(2)}`;
 
 // Normaliza campos opcionales vacíos a null/undefined
 function cleanData(data) {
@@ -76,13 +79,25 @@ export const productService = {
     return prisma.product.create({ data: cleanData(data), include: { category: true } });
   },
 
-  async update(id, data) {
-    await this.getById(id);
-    return prisma.product.update({
+  async update(id, data, actorId) {
+    const existing = await this.getById(id);
+    const updated = await prisma.product.update({
       where: { id },
       data: cleanData(data),
       include: { category: true },
     });
+
+    if (data.price !== undefined && Number(data.price) !== Number(existing.price)) {
+      await auditService.log({
+        action: 'PRODUCT_PRICE_CHANGED',
+        entity: 'Product',
+        entityId: id,
+        summary: `Cambió el precio de "${existing.name}" de ${money(existing.price)} a ${money(data.price)}`,
+        userId: actorId,
+      });
+    }
+
+    return updated;
   },
 
   // Borrado lógico si el producto ya tiene ventas; físico si no.

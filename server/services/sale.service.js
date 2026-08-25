@@ -1,6 +1,7 @@
 import { prisma } from '../config/prisma.js';
 import { ApiError } from '../utils/ApiError.js';
 import { buildSaleTotals } from '../utils/saleCalc.js';
+import { auditService } from './audit.service.js';
 
 const saleInclude = {
   customer: true,
@@ -108,7 +109,7 @@ export const saleService = {
    * No permite anular una venta ya anulada.
    */
   async cancel(id, reason, userId) {
-    return prisma.$transaction(
+    const cancelled = await prisma.$transaction(
       async (tx) => {
         const sale = await tx.sale.findUnique({ where: { id }, include: { details: true } });
         if (!sale) throw ApiError.notFound('Venta no encontrada');
@@ -152,6 +153,18 @@ export const saleService = {
       },
       { timeout: 20000, maxWait: 10000 }
     );
+
+    await auditService.log({
+      action: 'SALE_CANCELLED',
+      entity: 'Sale',
+      entityId: cancelled.id,
+      summary:
+        `Anuló la venta NV-${String(cancelled.number).padStart(6, '0')} por S/ ${Number(cancelled.total).toFixed(2)}` +
+        (reason ? ` — Motivo: ${reason}` : ''),
+      userId,
+    });
+
+    return cancelled;
   },
 
   async list({ from, to, page, pageSize }) {

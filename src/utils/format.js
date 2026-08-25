@@ -42,6 +42,24 @@ export function paymentLabel(method) {
   return PAYMENT_LABELS[method] || method;
 }
 
+export const EXPENSE_CATEGORY_LABELS = {
+  RENT: 'Alquiler',
+  UTILITIES: 'Servicios',
+  PAYROLL: 'Sueldos',
+  SUPPLIES: 'Insumos',
+  MAINTENANCE: 'Mantenimiento',
+  TAXES: 'Impuestos',
+  OTHER: 'Otro',
+};
+
+export const AUDIT_ACTION_LABELS = {
+  PRODUCT_PRICE_CHANGED: 'Cambio de precio',
+  SALE_CANCELLED: 'Venta anulada',
+  STOCK_ADJUSTED: 'Ajuste de stock',
+  USER_ROLE_CHANGED: 'Cambio de rol',
+  USER_STATUS_CHANGED: 'Cambio de estado de usuario',
+};
+
 // Número de nota formateado: NV-000001
 export function saleNumber(n) {
   return `NV-${String(n).padStart(6, '0')}`;

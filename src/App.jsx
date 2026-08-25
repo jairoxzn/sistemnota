@@ -17,6 +17,8 @@ import CatalogAdmin from './pages/CatalogAdmin.jsx';
 import PublicCatalog from './pages/PublicCatalog.jsx';
 import Users from './pages/Users.jsx';
 import CashRegister from './pages/CashRegister.jsx';
+import Expenses from './pages/Expenses.jsx';
+import Audit from './pages/Audit.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
@@ -86,6 +88,22 @@ export default function App() {
           element={
             <ProtectedRoute role="ADMIN">
               <Users />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/expenses"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <Expenses />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/audit"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <Audit />
             </ProtectedRoute>
           }
         />
